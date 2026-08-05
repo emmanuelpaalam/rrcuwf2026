@@ -14,7 +14,7 @@ ui <- fluidPage(
       tabPanel("Descriptive Data", 
                br(),
                h3("Metabolic Syndrome Indicators"),
-               p("Distributions of key clinical variables in the selected All of Us cohort."),
+               p("Descriptive statistics and distributions of key sociodemographic and clinical variables for the targeted project cohort: participants within the NIH All of Us Research Program who present with both Metabolic Syndrome (MetS) and Head and Neck Cancer (HNC)."),
                br(),
                
                h3("Demographics"),
@@ -40,9 +40,63 @@ ui <- fluidPage(
       
       tabPanel("LCA Subgroups", 
                br(),
-               h3("Latent Class Analysis"),
-               p("Visualization of distinct metabolic risk subgroups and chronic disease burden."),
+               h3("Latent Class Analysis of Mental-Metabolic Profiles"),
+               p("This section visualizes distinct latent mental-metabolic subgroups based on depression, anxiety, and individual metabolic syndrome components."),
                
+               # --- Static Visuals: The What and How ---
+               fluidRow(
+                 column(6, 
+                        h4("Conditional Item-Response Probabilities", align = "center"),
+                        imageOutput("bubble_chart", height = "auto")
+                 ),
+                 column(6, 
+                        h4("Multiple Correspondence Analysis", align = "center"),
+                        imageOutput("mca_plot", height = "auto")
+                 )
+               ),
+               
+               p("Based on the Latent Class Analysis, the algorithm identified five distinct mental-metabolic profiles within the cohort:"),
+               tags$ul(
+                 tags$li(strong("Class 1:"), " Diabetes, hypertension, and triglyceride burden (24.8%)"),
+                 tags$li(strong("Class 2:"), " Triglyceride-dominant (11.2%)"),
+                 tags$li(strong("Class 3:"), " Hypertension and triglyceride burden (27.6%)"),
+                 tags$li(strong("Class 4:"), " Obesity-dominant with mental health burden (6.5%)"),
+                 tags$li(strong("Class 5:"), " High combined mental-metabolic burden (29.9%)")
+               ),
+               
+               hr(),
+               
+               # --- Interactive Geographic Toggle ---
+               h3("Sociodemographic & Geographic Breakdown"),
+               p("Choose between descriptive analysis of the LCA groups for the general MetS population or those specifically located in the Florida Panhandle (ZIP codes 324**, 325**)."),
+               wellPanel(
+                 radioButtons("region_toggle", 
+                              "Select Geographic Region for Class Distribution:",
+                              choices = c("Full National Cohort", "Florida Panhandle"),
+                              selected = "Full National Cohort")
+               ),
+               
+               # Geographic Distribution Plot
+               fluidRow(
+                 column(12, plotOutput("geographic_distribution"))
+               ),
+               
+               hr(),
+               
+               # --- Demographic RDS Plots ---
+               fluidRow(
+                 column(6, plotOutput("age_plot")),
+                 column(6, plotOutput("sex_plot"))
+               ),
+               br(),
+               fluidRow(
+                 column(6, plotOutput("race_plot")),
+                 column(6, plotOutput("education_plot"))
+               ),
+               br(),
+               fluidRow(
+                 column(12, plotOutput("marital_plot"))
+               )
       )
     )
   )
@@ -58,5 +112,59 @@ server <- function(input, output, session) {
   output$impacts <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/fatiguemet.rds")})
   output$smoking <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/smokrisk.rds")})
   output$activity <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/actlevels.rds")})
+  
+  # --- Static Image Rendering ---
+  # Note: renderImage is used for non-RDS image files like PNG/TIFF
+  output$bubble_chart <- renderImage({
+    list(
+      src = "data/lca/Classes_5_class_full_cohort.png",
+      width = "130%",
+      alt = "5-Class Mental-Metabolic LCA Solution"
+    )
+  }, deleteFile = FALSE)
+  
+  output$mca_plot <- renderImage({
+    list(
+      src = "data/lca/MCA_5_class_solution_full_cohort.png",
+      width = "100%",
+      alt = "Multiple Correspondence Analysis"
+    )
+  }, deleteFile = FALSE)
+  
+  # --- Interactive Geographic Toggle ---
+  output$geographic_distribution <- renderPlot({
+    if (input$region_toggle == "Full National Cohort") {
+      readRDS("data/lca/class_dist_full.rds")
+    } else {
+      readRDS("data/lca/class_dist_panhandle.rds")
+    }
+  })
+  
+  # --- Demographic RDS Plots (Interactive) ---
+  output$age_plot <- renderPlot({
+    if (input$region_toggle == "Full National Cohort") readRDS("data/lca/class_age.rds")
+    else readRDS("data/lca/class_age_panhandle.rds")
+  })
+  
+  output$sex_plot <- renderPlot({
+    if (input$region_toggle == "Full National Cohort") readRDS("data/lca/class_sex.rds")
+    else readRDS("data/lca/class_sex_panhandle.rds")
+  })
+  
+  output$race_plot <- renderPlot({
+    if (input$region_toggle == "Full National Cohort") readRDS("data/lca/class_race.rds")
+    else readRDS("data/lca/class_race_panhandle.rds")
+  })
+  
+  output$education_plot <- renderPlot({
+    # Note: earlier we saved this as "class_education.rds"
+    if (input$region_toggle == "Full National Cohort") readRDS("data/lca/class_education.rds")
+    else readRDS("data/lca/class_edu_panhandle.rds")
+  })
+  
+  output$marital_plot <- renderPlot({
+    if (input$region_toggle == "Full National Cohort") readRDS("data/lca/class_marital.rds")
+    else readRDS("data/lca/class_mar_panhandle.rds")
+  })
 }
 shinyApp(ui, server)
