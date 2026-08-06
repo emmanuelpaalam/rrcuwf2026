@@ -1,4 +1,5 @@
 library(shiny)
+library(ggplot2)
 
 ui <- fluidPage(
   titlePanel(
@@ -104,14 +105,14 @@ ui <- fluidPage(
 
 
 server <- function(input, output, session) {
-  output$dem1 <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/dem_birthsex.rds")})
-  output$dem2 <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/dem_raceeth.rds")})
-  output$dem3 <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/dem_age.rds")})
-  output$mets_prev <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/metsprev.rds")})
-  output$metcount <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/metcount.rds")})
-  output$impacts <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/fatiguemet.rds")})
-  output$smoking <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/smokrisk.rds")})
-  output$activity <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/actlevels.rds")})
+  output$dem1 <- renderPlot({readRDS("data/dem_birthsex.rds")})
+  output$dem2 <- renderPlot({readRDS("data/dem_raceeth.rds")})
+  output$dem3 <- renderPlot({readRDS("data/dem_age.rds")})
+  output$mets_prev <- renderPlot({readRDS("data/metsprev.rds")})
+  output$metcount <- renderPlot({readRDS("data/metcount.rds")})
+  output$impacts <- renderPlot({readRDS("data/fatiguemet.rds")})
+  output$smoking <- renderPlot({readRDS("data/smokrisk.rds")})
+  output$activity <- renderPlot({readRDS("data/actlevels.rds")})
   
   # --- Static Image Rendering ---
   # Note: renderImage is used for non-RDS image files like PNG/TIFF
