@@ -1,4 +1,5 @@
 library(shiny)
+library(ggplot2)
 
 ui <- fluidPage(
   titlePanel(
@@ -109,6 +110,7 @@ ui <- fluidPage(
 
 
 server <- function(input, output, session) {
+
   output$dem1 <- renderPlot({
     if (input$desc_toggle == "Full National Cohort") readRDS("data/dem_birthsex.rds")
     else readRDS("data/dem_birthsex_fl.rds")
