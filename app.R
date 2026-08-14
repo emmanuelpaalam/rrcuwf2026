@@ -15,7 +15,12 @@ ui <- fluidPage(
                br(),
                h3("Metabolic Syndrome Indicators"),
                p("Descriptive statistics and distributions of key sociodemographic and clinical variables for the targeted project cohort: participants within the NIH All of Us Research Program who present with both Metabolic Syndrome (MetS) and Head and Neck Cancer (HNC)."),
-               br(),
+               wellPanel(
+                 radioButtons("desc_toggle", 
+                              "Select Geographic Region for Class Distribution:",
+                              choices = c("Full National Cohort", "Florida"),
+                              selected = "Full National Cohort")
+               ),
                
                h3("Demographics"),
                fluidRow(
@@ -68,11 +73,11 @@ ui <- fluidPage(
                
                # --- Interactive Geographic Toggle ---
                h3("Sociodemographic & Geographic Breakdown"),
-               p("Choose between descriptive analysis of the LCA groups for the general MetS population or those specifically located in the Florida Panhandle (ZIP codes 324**, 325**)."),
+               p("Choose between descriptive analysis of the LCA groups for the general MetS population or those specifically located in Florida."),
                wellPanel(
                  radioButtons("region_toggle", 
                               "Select Geographic Region for Class Distribution:",
-                              choices = c("Full National Cohort", "Florida Panhandle"),
+                              choices = c("Full National Cohort", "Florida"),
                               selected = "Full National Cohort")
                ),
                
@@ -104,14 +109,45 @@ ui <- fluidPage(
 
 
 server <- function(input, output, session) {
-  output$dem1 <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/dem_birthsex.rds")})
-  output$dem2 <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/dem_raceeth.rds")})
-  output$dem3 <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/dem_age.rds")})
-  output$mets_prev <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/metsprev.rds")})
-  output$metcount <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/metcount.rds")})
-  output$impacts <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/fatiguemet.rds")})
-  output$smoking <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/smokrisk.rds")})
-  output$activity <- renderPlot({readRDS("~/repos/MetaSenseRepo/data/actlevels.rds")})
+  output$dem1 <- renderPlot({
+    if (input$desc_toggle == "Full National Cohort") readRDS("data/dem_birthsex.rds")
+    else readRDS("data/dem_birthsex_fl.rds")
+  })
+  
+  output$dem2 <- renderPlot({
+    if (input$desc_toggle == "Full National Cohort") readRDS("data/dem_raceeth.rds")
+    else readRDS("data/dem_raceeth_fl.rds")
+  })
+  
+  output$dem3 <- renderPlot({
+    if (input$desc_toggle == "Full National Cohort") readRDS("data/dem_age.rds")
+    else readRDS("data/dem_age_fl.rds")
+  })
+  
+  output$mets_prev <- renderPlot({
+    if (input$desc_toggle == "Full National Cohort") readRDS("data/metsprev.rds")
+    else readRDS("data/metsprev_fl.rds")
+  })
+  
+  output$metcount <- renderPlot({
+    if (input$desc_toggle == "Full National Cohort") readRDS("data/metcount.rds")
+    else readRDS("data/metcount_fl.rds")
+  })
+  
+  output$impacts <- renderPlot({
+    if (input$desc_toggle == "Full National Cohort") readRDS("data/fatiguemet.rds")
+    else readRDS("data/fatiguemet_fl.rds")
+  })
+  
+  output$smoking <- renderPlot({
+    if (input$desc_toggle == "Full National Cohort") readRDS("data/smokrisk.rds")
+    else readRDS("data/smokrisk_fl.rds")
+  })
+  
+  output$activity <- renderPlot({
+    if (input$desc_toggle == "Full National Cohort") readRDS("data/actlevels.rds")
+    else readRDS("data/actlevels_fl.rds")
+  })
   
   # --- Static Image Rendering ---
   # Note: renderImage is used for non-RDS image files like PNG/TIFF
@@ -136,35 +172,35 @@ server <- function(input, output, session) {
     if (input$region_toggle == "Full National Cohort") {
       readRDS("data/lca/class_dist_full.rds")
     } else {
-      readRDS("data/lca/class_dist_panhandle.rds")
+      readRDS("data/lca/class_dist_fl.rds")
     }
   })
   
   # --- Demographic RDS Plots (Interactive) ---
   output$age_plot <- renderPlot({
     if (input$region_toggle == "Full National Cohort") readRDS("data/lca/class_age.rds")
-    else readRDS("data/lca/class_age_panhandle.rds")
+    else readRDS("data/lca/class_age_fl.rds")
   })
   
   output$sex_plot <- renderPlot({
     if (input$region_toggle == "Full National Cohort") readRDS("data/lca/class_sex.rds")
-    else readRDS("data/lca/class_sex_panhandle.rds")
+    else readRDS("data/lca/class_sex_fl.rds")
   })
   
   output$race_plot <- renderPlot({
     if (input$region_toggle == "Full National Cohort") readRDS("data/lca/class_race.rds")
-    else readRDS("data/lca/class_race_panhandle.rds")
+    else readRDS("data/lca/class_race_fl.rds")
   })
   
   output$education_plot <- renderPlot({
     # Note: earlier we saved this as "class_education.rds"
     if (input$region_toggle == "Full National Cohort") readRDS("data/lca/class_education.rds")
-    else readRDS("data/lca/class_edu_panhandle.rds")
+    else readRDS("data/lca/class_edu_fl.rds")
   })
   
   output$marital_plot <- renderPlot({
     if (input$region_toggle == "Full National Cohort") readRDS("data/lca/class_marital.rds")
-    else readRDS("data/lca/class_mar_panhandle.rds")
+    else readRDS("data/lca/class_mar_fl.rds")
   })
 }
 shinyApp(ui, server)
