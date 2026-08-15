@@ -52,3 +52,6 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# Team photos (local only)
+www/team/
