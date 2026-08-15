@@ -58,7 +58,7 @@ ui <- fluidPage(
       type = "pills",
       
       # ---------------------------------------------------------------
-      # TAB 1: ABOUT THE PROJECT
+      # ABOUT
       # ---------------------------------------------------------------
       tabPanel("About the Project",
                br(),
@@ -80,65 +80,49 @@ ui <- fluidPage(
                  strong("Northwest Florida Cohort"), " (ZIP codes 323**, 324**, 325**), to examine regional patterns relevant to our research region."),
                h4("How to Use This Dashboard"),
                tags$ul(
-                 tags$li(strong("Descriptive Data:"), " Explore sociodemographic, clinical, and behavioral distributions for the cohort."),
-                 tags$li(strong("LCA Subgroups:"), " View latent class subgroups defined by mental-metabolic burden."),
-                 tags$li(strong("ML Model Input:"), " Enter patient-level data to preview inputs for the risk-prediction model (currently a mockup; not yet connected to a trained model).")
+                 tags$li(strong("Descriptive Data:"), " Explore sociodemographic, clinical, and behavioral distributions for both cohorts."),
+                 tags$li(strong("LCA Subgroups:"), " View latent class subgroups defined by mental-metabolic burden, with descriptive data per class."),
+                 tags$li(strong("ML Model Input:"), " Enter patient-level data to identify individual likelihood for falling into one of the identified risk groups (currently a mockup; not yet connected to a trained model).")
                )
       ),
       
       # ---------------------------------------------------------------
-      # TAB 2: TEAM MEMBERS
-      # ---------------------------------------------------------------
-      tabPanel("Team",
-               br(),
-               h3("Project Team"),
-               p("Meet the researchers and collaborators behind MetaSense.", em(" (Placeholder roster \u2014 update with real names, roles, and affiliations.)")),
-               br(),
-               fluidRow(
-                 lapply(team_members, function(m) column(4, team_card(m), br()))
-               )
-      ),
-      
-      # ---------------------------------------------------------------
-      # TAB 3: DESCRIPTIVE DATA
+      # DESCRIPTIVE DATA
       # ---------------------------------------------------------------
       tabPanel("Descriptive Data",
                br(),
-               h3("Metabolic Syndrome Indicators"),
-               p("Descriptive statistics and distributions of key sociodemographic and clinical variables for the targeted project cohort: participants within the NIH All of Us Research Program who present with both Metabolic Syndrome (MetS) and Head and Neck Cancer (HNC)."),
+               h3("Metabolic Syndrome & Cohort Indicators"),
+               p("Explore the clinical, behavioral, and demographic breakdown of our study population. Both the National and Northwest Florida cohorts are displayed side-by-side for comparison."),
                
+               # Dropdown selector for the plot
                wellPanel(
-                 radioButtons("desc_region_toggle",
-                              "Select Cohort:",
-                              choices = c("Full National Cohort", "Northwest Florida Cohort"),
-                              selected = "Full National Cohort",
-                              inline = TRUE)
+                 selectInput("desc_plot_choice", 
+                             "Select a Clinical or Demographic Metric to Visualize:",
+                             choices = c(
+                               "Demographics: Sex at Birth" = "dem_sex",
+                               "Demographics: Race/Ethnicity" = "dem_race",
+                               "Demographics: Age Distribution" = "dem_age",
+                               "Clinical: MetS Symptom Prevalence" = "mets_prev",
+                               "Clinical: Metabolic Component Count" = "metcount",
+                               "Patient-Reported: Fatigue Severity" = "impacts",
+                               "Behavioral: Lifetime Smoking Risk" = "smoking",
+                               "Behavioral: Everyday Activity Levels" = "activity"
+                             ), 
+                             width = "100%")
                ),
-               br(),
                
-               h3("Demographics"),
+               # Dynamic caption and plot
                fluidRow(
-                 column(6, plotOutput("dem1")),
-                 column(6, plotOutput("dem2")),
-                 column(12, plotOutput("dem3")),
-               ),
-               
-               h3("MetS Symptoms Prevalence by Subject Group"),
-               fluidRow(column(12, plotOutput("mets_prev"))),
-               
-               h3("Metabolic Count Distribution"),
-               fluidRow(column(12, plotOutput("metcount"))),
-               
-               h3("Physical/Mental Impact of MetS"),
-               fluidRow(column(12, plotOutput("impacts"))),
-               
-               h3("Behavioral Data"),
-               fluidRow(column(6, plotOutput("smoking")),
-                        column(6, plotOutput("activity"))),
+                 column(12, 
+                        uiOutput("desc_plot_caption"),
+                        br(),
+                        plotOutput("desc_main_plot", height = "500px")
+                 )
+               )
       ),
       
       # ---------------------------------------------------------------
-      # TAB 4: LCA SUBGROUPS
+      # LCA SUBGROUPS
       # ---------------------------------------------------------------
       tabPanel("LCA Subgroups",
                br(),
@@ -168,42 +152,34 @@ ui <- fluidPage(
                
                hr(),
                
-               # --- Interactive Geographic Toggle ---
                h3("Sociodemographic & Geographic Breakdown"),
-               p("Choose between descriptive analysis of the LCA groups for the general MetS population or those specifically located in Northwest Florida (ZIP codes 323**, 324**, 325**)."),
+               p("Explore the distribution and demographic makeup of the Latent Classes, comparing the National cohort alongside the Northwest Florida region."),
+               
                wellPanel(
-                 radioButtons("region_toggle",
-                              "Select Cohort:",
-                              choices = c("Full National Cohort", "Northwest Florida Cohort"),
-                              selected = "Full National Cohort",
-                              inline = TRUE)
+                 selectInput("lca_plot_choice", 
+                             "Select an LCA Breakdown to Visualize:",
+                             choices = c(
+                               "Class Distribution Overview" = "dist",
+                               "Demographics: Age Distribution" = "age",
+                               "Demographics: Sex at Birth" = "sex",
+                               "Demographics: Race/Ethnicity" = "race",
+                               "Demographics: Educational Attainment" = "edu",
+                               "Demographics: Marital Status" = "marital"
+                             ), 
+                             width = "100%")
                ),
                
-               # Geographic Distribution Plot
                fluidRow(
-                 column(12, plotOutput("geographic_distribution"))
-               ),
-               
-               hr(),
-               
-               # --- Demographic RDS Plots ---
-               fluidRow(
-                 column(6, plotOutput("age_plot")),
-                 column(6, plotOutput("sex_plot"))
-               ),
-               br(),
-               fluidRow(
-                 column(6, plotOutput("race_plot")),
-                 column(6, plotOutput("education_plot"))
-               ),
-               br(),
-               fluidRow(
-                 column(12, plotOutput("marital_plot"))
+                 column(12, 
+                        uiOutput("lca_plot_caption"),
+                        br(),
+                        plotOutput("lca_main_plot", height = "500px")
+                 )
                )
       ),
       
       # ---------------------------------------------------------------
-      # TAB 5: ML MODEL INPUT (mockup - not yet connected to a trained model)
+      # ML MODEL
       # ---------------------------------------------------------------
       tabPanel("ML Model Input",
                br(),
@@ -255,7 +231,20 @@ ui <- fluidPage(
                actionButton("ml_predict", "Preview Model Input", class = "btn-primary"),
                br(), br(),
                uiOutput("ml_output")
-      )
+      ),
+      
+      # ---------------------------------------------------------------
+      # TEAM MEMBERS
+      # ---------------------------------------------------------------
+      tabPanel("Team",
+               br(),
+               h3("Project Team"),
+               p("Meet the researchers and collaborators behind MetaSense.", em(" (Placeholder roster \u2014 update with real names, roles, and affiliations.)")),
+               br(),
+               fluidRow(
+                 lapply(team_members, function(m) column(4, team_card(m), br()))
+               )
+      ),
     )
   )
 )
@@ -264,30 +253,40 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   
   # ---------------------------------------------------------------
-  # Descriptive Data (region-aware; dynamically pulls _fl.rds)
+  # Descriptive Data Logic
   # ---------------------------------------------------------------
-  is_national_desc <- reactive(input$desc_region_toggle == "Full National Cohort")
   
-  render_desc_plot <- function(path) {
-    renderPlot({
-      if (is_national_desc()) {
-        readRDS(path)
-      } else {
-        # Automatically change the path to load the _fl version of the RDS file
-        fl_path <- sub("\\.rds$", "_fl.rds", path)
-        readRDS(fl_path)
-      }
-    })
-  }
+  # Render the single dynamic plot based on user selection
+  output$desc_main_plot <- renderPlot({
+    plot_file <- switch(input$desc_plot_choice,
+                        "dem_sex" = "data/dem_birthsex.rds",
+                        "dem_race" = "data/dem_raceeth.rds",
+                        "dem_age" = "data/dem_age.rds",
+                        "mets_prev" = "data/metsprev.rds",
+                        "metcount" = "data/metcount.rds",
+                        "impacts" = "data/fatiguemet.rds",
+                        "smoking" = "data/smokrisk.rds",
+                        "activity" = "data/actlevels.rds")
+    readRDS(plot_file)
+  })
   
-  output$dem1 <- render_desc_plot("data/dem_birthsex.rds")
-  output$dem2 <- render_desc_plot("data/dem_raceeth.rds")
-  output$dem3 <- render_desc_plot("data/dem_age.rds")
-  output$mets_prev <- render_desc_plot("data/metsprev.rds")
-  output$metcount <- render_desc_plot("data/metcount.rds")
-  output$impacts <- render_desc_plot("data/fatiguemet.rds")
-  output$smoking <- render_desc_plot("data/smokrisk.rds")
-  output$activity <- render_desc_plot("data/actlevels.rds")
+  # Render the dynamic clinical caption
+  output$desc_plot_caption <- renderUI({
+    caption_text <- switch(input$desc_plot_choice,
+                           "dem_sex" = "This chart shows the proportion of male versus female participants. Comparing the national and regional cohorts helps us understand if our local Northwest Florida population mirrors broader national trends in this disease space.",
+                           "dem_race" = "Here we see the racial and ethnic breakdown of the cohorts. Understanding these proportions is vital for ensuring our predictive models perform equitably and accurately across different patient populations.",
+                           "dem_age" = "This curve illustrates the age distribution. A wider curve means ages are more spread out, while a taller peak indicates a high concentration of patients around a specific age group.",
+                           "mets_prev" = "This plot breaks down the individual components of Metabolic Syndrome (like high blood pressure or diabetes). It separates patients by whether or not they have Head and Neck Cancer (HNC) to reveal potential overlapping clinical risks.",
+                           "metcount" = "Patients can have between 0 and 5 Metabolic Syndrome components. This visualization shows the density of the metabolic burden across the population, divided by head and neck cancer (HNC) status.",
+                           "impacts" = "Fatigue is a major patient-reported outcome. This stacked chart explores whether an increasing number of concurrent metabolic conditions correlates with more severe self-reported fatigue.",
+                           "smoking" = "Smoking is a primary behavioral risk factor for Head and Neck Cancer. This chart shows the lifetime smoking history of patients, grouped by their head and neck cancer (HNC) status.",
+                           "activity" = "Physical activity strongly impacts metabolic health. Here we compare how much everyday activity patients report, divided by their head and neck cancer (HNC) status.")
+    
+    # Wrap it in a nice alert box matching the UWF theme
+    div(class = "alert alert-secondary",
+        style = "border-left: 4px solid #00543C; background-color: #f8f9fa; color: #041E42;",
+        strong("Clinical Context: "), caption_text)
+  })
   
   # ---------------------------------------------------------------
   # LCA Subgroups
@@ -310,36 +309,31 @@ server <- function(input, output, session) {
     )
   }, deleteFile = FALSE)
   
-  is_national_lca <- reactive(input$region_toggle == "Full National Cohort")
-  
-  output$geographic_distribution <- renderPlot({
-    if (is_national_lca()) readRDS("data/lca/class_dist_full.rds")
-    else readRDS("data/lca/class_dist_fl.rds")
+  # Render the single dynamic plot for LCA based on user selection
+  output$lca_main_plot <- renderPlot({
+    lca_file <- switch(input$lca_plot_choice,
+                       "dist" = "data/lca/class_dist.rds",
+                       "age" = "data/lca/class_age.rds",
+                       "sex" = "data/lca/class_sex.rds",
+                       "race" = "data/lca/class_race.rds",
+                       "edu" = "data/lca/class_education.rds",
+                       "marital" = "data/lca/class_marital.rds")
+    readRDS(lca_file)
   })
   
-  output$age_plot <- renderPlot({
-    if (is_national_lca()) readRDS("data/lca/class_age.rds")
-    else readRDS("data/lca/class_age_fl.rds")
-  })
-  
-  output$sex_plot <- renderPlot({
-    if (is_national_lca()) readRDS("data/lca/class_sex.rds")
-    else readRDS("data/lca/class_sex_fl.rds")
-  })
-  
-  output$race_plot <- renderPlot({
-    if (is_national_lca()) readRDS("data/lca/class_race.rds")
-    else readRDS("data/lca/class_race_fl.rds")
-  })
-  
-  output$education_plot <- renderPlot({
-    if (is_national_lca()) readRDS("data/lca/class_education.rds")
-    else readRDS("data/lca/class_edu_fl.rds")
-  })
-  
-  output$marital_plot <- renderPlot({
-    if (is_national_lca()) readRDS("data/lca/class_marital.rds")
-    else readRDS("data/lca/class_mar_fl.rds")
+  # Render the dynamic clinical caption for LCA
+  output$lca_plot_caption <- renderUI({
+    caption_text <- switch(input$lca_plot_choice,
+                           "dist" = "This plot compares the proportion of patients assigned to each latent mental-metabolic class between the National and Northwest Florida cohorts, highlighting potential geographic differences in disease profiles.",
+                           "age" = "Age distributions within each latent class. Identifying whether severe classes skew younger or older helps tailor age-appropriate early interventions.",
+                           "sex" = "Sex breakdown across the classes. This highlights whether specific mental-metabolic risk profiles are more prevalent in male or female patient populations.",
+                           "race" = "Racial and ethnic distribution per class. Observing disparities here is critical for recognizing populations disproportionately affected by combined mental and metabolic burdens.",
+                           "edu" = "Educational attainment across the classes. This acts as a proxy for socioeconomic status, revealing if specific risk profiles are associated with social determinants of health.",
+                           "marital" = "Marital status breakdown. Social support systems, or lack thereof, can significantly impact a patient's mental-metabolic profile and adherence to lifestyle interventions.")
+    
+    div(class = "alert alert-secondary",
+        style = "border-left: 4px solid #00543C; background-color: #f8f9fa; color: #041E42;",
+        strong("Clinical Context: "), caption_text)
   })
   
   # ---------------------------------------------------------------
