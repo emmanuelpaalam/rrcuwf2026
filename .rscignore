@@ -1,0 +1,4 @@
+# Exclude retired/archived app variants and drafts from deployment bundles.
+# app_merged.R is the published app; everything in not_published/ is kept
+# locally for reference only and must never be included in a deploy.
+not_published/

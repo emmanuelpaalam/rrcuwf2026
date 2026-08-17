@@ -16,8 +16,7 @@ ink       <- "#22303F"
 
 app_theme <- bs_theme(
   version = 5,
-
-primary = navy,
+  primary = navy,
   success = uwf_green,
   bg = "#FFFFFF",
   fg = ink,
@@ -67,16 +66,6 @@ cohort_toggle <- function(input_id) {
   )
 }
 
-# Original cohort toggle for LCA (two choices)
-cohort_toggle_lca <- function(input_id) {
-  div(class = "cohort-toggle",
-      radioButtons(input_id, "Cohort",
-                   choices = c("Full National Cohort", "Northwest Florida Cohort"),
-                   selected = "Full National Cohort",
-                   inline = TRUE)
-  )
-}
-
 metric_box <- function(label, value, note = NULL) {
   card(
     card_body(
@@ -96,30 +85,6 @@ placeholder_plot <- function(msg) {
 
 safe_rds_plot <- function(path, missing_msg) {
   if (file.exists(path)) readRDS(path) else placeholder_plot(missing_msg)
-}
-
-# Five LCA phenotypes from technical report (Table 3)
-lca_classes <- list(
-  list(pct = "33.2%", title = "High Multidomain Burden", color = navy,
-       desc = "Broadest concurrent burden: mental health (72%), obesity (72%), hypertension (95%), diabetes (60%), dyslipidemia (45%), OA (85%), cancer (25%)"),
-  list(pct = "21.9%", title = "Hypertension-Dominant", color = uwf_green,
-       desc = "Hypertension (100%), moderate OA (35%), low metabolic/mental burden otherwise"),
-  list(pct = "19.6%", title = "Obesity-Dominant", color = navy,
-       desc = "Obesity (100%), elevated mental health burden (54%), moderate OA (30%)"),
-  list(pct = "14.9%", title = "Diabetes-Dominant", color = uwf_green,
-       desc = "Diabetes (100%), hypertension (71%), moderate mental health burden (34%)"),
-  list(pct = "10.5%", title = "Dyslipidemia/OA-Dominant", color = navy,
-       desc = "Dyslipidemia (100%), OA (53%), hypertension (54%), cancer (21%)")
-)
-
-lca_value_box <- function(cls) {
-  value_box(
-    title = cls$title,
-    value = cls$pct,
-    theme = value_box_theme(bg = cls$color, fg = "white"),
-    showcase = NULL,
-    full_screen = FALSE
-  )
 }
 
 team_members <- list(
@@ -164,6 +129,29 @@ lca_indicator <- data.frame(
   PresentPct = c(51.8, 51.0, 76.5, 35.5, 28.3, 50.1, 15.6)
 )
 
+lca_profile <- data.frame(
+  Profile = c("Diabetes-Dominant", "Obesity-Dominant", "High Multidomain Burden", "Dyslipidemia/OA-Dominant", "Hypertension-Dominant"),
+  Prevalence = c(14.9, 19.6, 33.2, 10.5, 21.9),
+  MH = c(.342, .535, .715, .406, .377),
+  Obesity = c(.368, 1.000, .723, .081, .052),
+  HTN = c(.710, .348, .954, .540, 1.000),
+  Diabetes = c(1.000, .034, .597, .016, 0.000),
+  Dyslipidemia = c(.134, .055, .445, 1.000, 0.000),
+  OA = c(.208, .297, .845, .527, .351),
+  Cancer = c(.087, .056, .245, .210, .134)
+)
+
+modal_counts <- data.frame(
+  Profile = c("Diabetes-Dominant", "Obesity-Dominant", "High Multidomain Burden", "Dyslipidemia/OA-Dominant", "Hypertension-Dominant"),
+  n = c(36079, 40174, 68574, 23742, 50050)
+)
+
+florida_profile <- data.frame(
+  Profile = c("Diabetes-Dominant", "Dyslipidemia/OA-Dominant", "High Multidomain Burden", "Hypertension-Dominant", "Obesity-Dominant"),
+  n = c(52, 75, 160, 110, 100),
+  pct = c(10.5, 15.1, 32.2, 22.1, 20.1)
+)
+
 wearable_compare <- data.frame(
   Group = c("Other", "High Multidomain Burden"),
   MedianSteps = c(6351, 5003),
@@ -180,6 +168,11 @@ florida_compare <- data.frame(
   LowActivity = c(17.3, 15.6),
   HighActivity = c(7.69, 9.78),
   StepCV = c(.499, .490)
+)
+
+model_perf <- data.frame(
+  Metric = c("ROC AUC", "Sensitivity", "Specificity", "PPV", "NPV", "F1 score", "Brier score"),
+  Value = c(.691, .715, .551, .389, .829, .504, .185)
 )
 
 # ---------------------------------------------------------------------
@@ -206,6 +199,30 @@ plot_wearable_compare <- function() {
     theme(panel.grid.minor = element_blank(), legend.position = "top")
 }
 
+plot_lca_profiles <- function(dat, value_col = "Prevalence", ylab = "Estimated class prevalence (%)") {
+  ggplot(dat, aes(x = reorder(Profile, .data[[value_col]]), y = .data[[value_col]])) +
+    geom_col() +
+    coord_flip() +
+    labs(x = NULL, y = ylab) +
+    theme_minimal(base_size = 12) +
+    theme(panel.grid.minor = element_blank())
+}
+
+plot_lca_bubble <- function() {
+  long <- tidyr::pivot_longer(
+    lca_profile,
+    cols = c(MH, Obesity, HTN, Diabetes, Dyslipidemia, OA, Cancer),
+    names_to = "Indicator", values_to = "Probability"
+  )
+  ggplot(long, aes(x = Indicator, y = Profile, size = Probability, fill = Probability)) +
+    geom_point(shape = 21, color = "grey25") +
+    scale_size(range = c(2, 11), limits = c(0, 1)) +
+    scale_fill_gradient(low = "white", high = navy, limits = c(0, 1)) +
+    labs(x = NULL, y = NULL, size = "Probability", fill = "Probability") +
+    theme_minimal(base_size = 11) +
+    theme(panel.grid.minor = element_blank(), axis.text.x = element_text(angle = 35, hjust = 1))
+}
+
 plot_florida_compare <- function() {
   ggplot(florida_compare, aes(x = Group, y = HighBurdenPct)) +
     geom_col() +
@@ -218,60 +235,20 @@ plot_florida_compare <- function() {
 
 # ---------------------------------------------------------------------
 # MODEL BUNDLE
-# Expected fields: model (xgb.Booster or raw bytes from xgb.save.raw()),
-# columns, factor_levels, qhat_other, qhat_high, threshold.
+# Expected file: data/model/metasense_model_bundle.rds
+# Required fields:
+#   model       : fitted xgb.Booster
+#   columns     : colnames(x_train_clean)
+#   factor_levels: named list of factor levels
+#   qhat_other  : class-conditional conformal threshold
+#   qhat_high   : class-conditional conformal threshold
+#   threshold   : operating threshold (0.266 in final report)
 # ---------------------------------------------------------------------
 model_bundle_path <- "data/model/metasense_model_bundle.rds"
 model_bundle <- NULL
-model_bundle_error <- NULL
-
 if (file.exists(model_bundle_path)) {
   model_bundle <- tryCatch(readRDS(model_bundle_path), error = function(e) NULL)
-
-  if (!is.null(model_bundle) && is.raw(model_bundle)) {
-    # The file holds only the raw booster bytes (e.g. saved via
-    # saveRDS(xgb.save.raw(xgb_tuned), path)), not the full bundle list.
-    # Wrap it so downstream code has a consistent list shape, but the
-    # columns/factor_levels/thresholds metadata is unrecoverable from here.
-    model_bundle <- list(model = model_bundle)
-    model_bundle_error <- paste(
-      "The saved file only contains the raw XGBoost booster bytes \u2014 the columns,",
-      "factor_levels, and conformal thresholds metadata is missing, so predictions cannot",
-      "be aligned to the training features. Re-save the full bundle list, e.g.:",
-      "model_bundle$model <- xgboost::xgb.save.raw(xgb_tuned); saveRDS(model_bundle, \"data/model/metasense_model_bundle.rds\")."
-    )
-  }
-
-  if (!is.null(model_bundle) && is.list(model_bundle) && has_xgboost) {
-    # xgb.Booster external pointers do not survive plain readRDS() across
-    # sessions. If the bundle stored raw bytes (xgb.save.raw()), rebuild the
-    # booster now. If it stored the live Booster object directly, its
-    # pointer may have failed to unserialize (an empty list/NULL result).
-    booster <- model_bundle$model
-    if (is.raw(booster)) {
-      # xgb.load.raw() returns class "xgb.Booster" in newer xgboost, or
-      # "xgb.Booster.handle" in older versions (e.g. 1.7.x); predict() works
-      # on either, so both are accepted below.
-      model_bundle$model <- tryCatch(xgboost::xgb.load.raw(booster), error = function(e) NULL)
-    } else if (!inherits(booster, c("xgb.Booster", "xgb.Booster.handle"))) {
-      model_bundle$model <- NULL
-      if (is.null(model_bundle_error)) {
-        model_bundle_error <- paste(
-          "The saved model bundle's xgb.Booster could not be restored",
-          "(readRDS cannot reliably unserialize xgboost's raw pointer across sessions).",
-          "Re-save the bundle with model = xgboost::xgb.save.raw(xgb_tuned) so it can be reloaded with xgb.load.raw()."
-        )
-      }
-    }
-  } else if (!is.null(model_bundle) && !is.list(model_bundle)) {
-    model_bundle <- NULL
-    model_bundle_error <- "The saved model bundle file is not in a recognized format (expected a list or raw booster bytes)."
-  }
 }
-
-model_ready <- !is.null(model_bundle) && has_xgboost &&
-  inherits(model_bundle$model, c("xgb.Booster", "xgb.Booster.handle")) &&
-  !is.null(model_bundle$columns)
 
 # ---------------------------------------------------------------------
 # UI
@@ -283,7 +260,7 @@ ui <- page_navbar(
   bg = navy,
 
   # -----------------------------------------------------------------
-  # ABOUT (from metasense_revised)
+  # ABOUT
   # -----------------------------------------------------------------
   nav_panel("About",
     div(class = "container-fluid py-4",
@@ -350,7 +327,7 @@ ui <- page_navbar(
   ),
 
   # -----------------------------------------------------------------
-  # DESCRIPTIVE DATA (from metasense_revised)
+  # DESCRIPTIVE DATA
   # -----------------------------------------------------------------
   nav_panel("Descriptive Data",
     div(class = "container-fluid py-4",
@@ -383,59 +360,43 @@ ui <- page_navbar(
   ),
 
   # -----------------------------------------------------------------
-  # LCA SUBGROUPS (from app.R)
+  # LCA SUBGROUPS
   # -----------------------------------------------------------------
   nav_panel("LCA Subgroups",
     div(class = "container-fluid py-4",
       section_header(
-        "Latent Class Analysis of Mental-Metabolic Chronic Disease Phenotypes",
-        "LCA identified five clinically interpretable multimorbidity phenotypes from 218,619 participants using seven binary indicators: mental-health burden, obesity, hypertension, diabetes, dyslipidemia, osteoarthritis, and cancer."
+        "Latent Class Analysis of Multimorbidity Profiles",
+        "Five reproducible, clinically interpretable profiles were identified from seven binary mental-health, metabolic, musculoskeletal, and cancer indicators."
       ),
-
-      card(card_header("Five Mental-Metabolic Phenotypes (N = 218,619)"),
-        card_body(
-          p(class = "section-lede", "The five-class solution was selected based on entropy (0.769), mean posterior probability (0.849), and clinical interpretability. The High Multidomain Burden phenotype represents the broadest concurrent burden and serves as the primary prediction target."),
-          layout_columns(col_widths = c(12, 6, 6, 6, 6), !!!lapply(lca_classes, lca_value_box))
-        )
+      layout_columns(
+        col_widths = c(4, 4, 4),
+        metric_box("Selected solution", "5 classes", "Relative entropy = 0.769"),
+        metric_box("LCA cohort", "218,619", "120 of 128 possible response patterns observed"),
+        metric_box("Largest profile", "33.2%", "High Multidomain Burden")
       ),
-
-      card(card_header("LCA Indicator Distribution"),
-        card_body(
-          p("Seven binary indicators used to define latent phenotypes:"),
-          tags$table(class = "table table-sm table-striped",
-            tags$thead(tags$tr(tags$th("Indicator"), tags$th("Present, n (%)"), tags$th("Absent, n (%)"))),
-            tags$tbody(
-              tags$tr(tags$td("Mental-health burden"), tags$td("113,193 (51.8%)"), tags$td("105,426 (48.2%)")),
-              tags$tr(tags$td("Obesity"), tags$td("111,545 (51.0%)"), tags$td("107,074 (49.0%)")),
-              tags$tr(tags$td("Hypertension"), tags$td("167,351 (76.5%)"), tags$td("51,268 (23.5%)")),
-              tags$tr(tags$td("Diabetes"), tags$td("77,666 (35.5%)"), tags$td("140,953 (64.5%)")),
-              tags$tr(tags$td("Dyslipidemia"), tags$td("61,888 (28.3%)"), tags$td("156,731 (71.7%)")),
-              tags$tr(tags$td("Osteoarthritis"), tags$td("109,539 (50.1%)"), tags$td("109,080 (49.9%)")),
-              tags$tr(tags$td("Cancer (top 10)"), tags$td("34,183 (15.6%)"), tags$td("184,436 (84.4%)"))
-            )
-          )
-        )
-      ),
-
-      card(card_header("LCA Phenotype Profiles"),
-        card_body(
-          div(class = "text-center",
-              imageOutput("lca_figure", height = "auto")
-          )
-        )
-      ),
-
+      card(card_header("Five Multimorbidity Profiles"), card_body(plotOutput("lca_distribution", height = 380))),
       card(
-        card_header("Sociodemographic & Geographic Breakdown"),
+        card_header("Model Diagnostics and Clinical Pattern"),
         card_body(
-          p(class = "section-lede", "Compare LCA subgroup composition between the general MetS population and those located in Northwest Florida (ZIP codes 324**, 325**)."),
-          cohort_toggle_lca("region_toggle"),
-          plotOutput("geographic_distribution")
+          layout_columns(
+            col_widths = c(6, 6),
+            div(h5("Conditional Item-Response Probabilities", class = "text-center"), plotOutput("bubble_chart", height = 470)),
+            div(h5("Multiple Correspondence Analysis", class = "text-center"), plotOutput("mca_plot", height = 470))
+          )
         )
       ),
-
-      card(card_header("Class Composition by Demographic"),
+      card(
+        card_header("Regional Profile Distribution"),
         card_body(
+          cohort_toggle("region_toggle"),
+          uiOutput("lca_region_note"),
+          plotOutput("geographic_distribution", height = 380)
+        )
+      ),
+      card(
+        card_header("Class Composition by Demographic"),
+        card_body(
+          p(class = "section-lede", "These panels require participant-level class-by-demographic summaries. If the saved RDS files are present they are displayed; otherwise the dashboard states exactly which file is needed."),
           layout_columns(col_widths = c(6, 6), plotOutput("age_plot"), plotOutput("sex_plot")),
           layout_columns(col_widths = c(6, 6), plotOutput("race_plot"), plotOutput("education_plot")),
           plotOutput("marital_plot")
@@ -445,67 +406,58 @@ ui <- page_navbar(
   ),
 
   # -----------------------------------------------------------------
-  # RISK PREDICTION (from app.R)
+  # ML MODEL INPUT
   # -----------------------------------------------------------------
-  nav_panel("Risk Prediction",
+  nav_panel("ML Model Input",
     div(class = "container-fluid py-4",
       section_header(
-        "High Multidomain Burden Risk Prediction",
-        "MetaSense predicts probability of High Multidomain Burden phenotype membership using wearable-derived activity and demographic features. Model AUC = 0.691 on held-out test data (N = 16,065 wearable cohort)."
+        "Interactive MetaSense Burden Prediction",
+        "Enter the same demographic and wearable variables used by the final model. The application returns the predicted probability of High Multidomain Burden plus an uncertainty-aware conformal prediction set."
       ),
-
-      # Model performance summary card
-      card(card_header("Model Performance Summary"),
-        card_body(
-          layout_columns(
-            col_widths = c(3, 3, 3, 3),
-            value_box(title = "Test ROC AUC", value = "0.691", theme = value_box_theme(bg = navy, fg = "white")),
-            value_box(title = "Sensitivity", value = "71.5%", theme = value_box_theme(bg = uwf_green, fg = "white")),
-            value_box(title = "Specificity", value = "55.1%", theme = value_box_theme(bg = navy, fg = "white")),
-            value_box(title = "NPV", value = "82.9%", theme = value_box_theme(bg = uwf_green, fg = "white"))
-          ),
-          p(class = "text-muted small", "Operating threshold = 0.266 (Youden's index). MetaSense is designed as a screening/stratification tool, not a diagnostic classifier. Positive results should prompt additional assessment.")
-        )
-      ),
-
       layout_sidebar(
         sidebar = sidebar(
-          width = 400,
-          title = "Input Features",
+          width = 390,
+          title = "Participant Inputs",
           open = "always",
 
           h6("Demographics"),
           numericInput("ml_age", "Age (years)", value = 65, min = 18, max = 100),
-          selectInput("ml_sex", "Sex at Birth", choices = c("Female", "Male")),
+          selectInput("ml_sex", "Sex at birth", choices = c("Female", "Male")),
           selectInput("ml_race", "Race/Ethnicity", choices = c("White", "Black or African American", "Hispanic", "Other")),
           selectInput("ml_education", "Education", choices = c("College graduate or higher", "Some college", "High school or less")),
-          selectInput("ml_marital", "Marital Status", choices = c("Married/Partnered", "Never Married", "Previously Married")),
-          selectInput("ml_region", "Broad Geographic Region", choices = c(
+          selectInput("ml_marital", "Marital status", choices = c("Married/Partnered", "Never Married", "Previously Married")),
+          selectInput("ml_region", "Broad geographic region", choices = c(
             "Pacific/West", "Central/South Central", "Upper Midwest/Northern Plains",
             "Mid-Atlantic/Southeast", "Great Lakes/Ohio Valley", "Eastern ZIP Zone 1",
             "Mountain/Southwest", "Eastern ZIP Zone 0", "North Florida"
           )),
 
           tags$hr(),
-          h6("Fitbit Wearable Activity Features"),
-          numericInput("ml_steps", "Mean Daily Steps", value = 5968, min = 0, max = 30000, step = 100),
-          numericInput("ml_step_cv", "Daily Step Variability (CV)", value = 0.49, min = 0, max = 2, step = 0.01),
-          numericInput("ml_low_days", "% Days < 3,000 Steps", value = 15.7, min = 0, max = 100, step = 0.1),
-          numericInput("ml_high_days", "% Days \u2265 10,000 Steps", value = 9.7, min = 0, max = 100, step = 0.1),
-          numericInput("ml_wknd_diff", "Weekend\u2013Weekday Step Difference", value = -208, min = -5000, max = 5000, step = 10),
-          numericInput("ml_activity_days", "Valid Fitbit Activity Days", value = 353, min = 30, max = 2000),
-          numericInput("ml_wear_density", "Wearable Observation Density (0-1)", value = 0.80, min = 0, max = 1, step = 0.01),
+          h6("Wearable Activity"),
+          numericInput("ml_steps_mean", "Mean daily steps", value = 6000, min = 100, max = 100000, step = 100),
+          numericInput("ml_steps_cv", "Daily step variability (CV)", value = 0.49, min = 0, max = 3, step = 0.01),
+          numericInput("ml_pct_lt_3000", "% days with <3,000 steps", value = 16, min = 0, max = 100, step = 1),
+          numericInput("ml_pct_ge_10000", "% days with >=10,000 steps", value = 10, min = 0, max = 100, step = 1),
+          numericInput("ml_weekend_difference", "Weekend - weekday steps", value = -200, min = -20000, max = 20000, step = 100),
+          numericInput("ml_activity_days", "Valid activity days", value = 353, min = 30, max = 5000),
+          numericInput("ml_wear_density", "Wearable observation density (0-1)", value = 0.80, min = 0, max = 1, step = 0.01),
 
           tags$hr(),
-          actionButton("ml_predict", "Estimate Risk", class = "btn-primary w-100")
+          actionButton("ml_predict", "Run MetaSense Prediction", class = "btn-primary w-100")
         ),
-
         div(
           uiOutput("ml_model_status"),
+          uiOutput("ml_output"),
           card(
-            card_header("Model Output"),
+            card_header("Model Performance Context"),
             card_body(
-              uiOutput("ml_output")
+              layout_columns(
+                col_widths = c(4, 4, 4),
+                metric_box("Held-out ROC AUC", "0.691", "Moderate discrimination"),
+                metric_box("Sensitivity", "71.5%", "At calibration-selected threshold 0.266"),
+                metric_box("NPV", "82.9%", "Cohort-specific; prevalence dependent")
+              ),
+              p(class = "small text-muted", "Class-conditional conformal prediction achieved 90.8% coverage for High Multidomain Burden and 91.2% for Other in the held-out test set. Approximately 62.2% of participants received an intentionally ambiguous two-class set.")
             )
           )
         )
@@ -514,7 +466,7 @@ ui <- page_navbar(
   ),
 
   # -----------------------------------------------------------------
-  # TEAM (from metasense_revised)
+  # TEAM
   # -----------------------------------------------------------------
   nav_panel("Team",
     div(class = "container-fluid py-4",
@@ -540,7 +492,7 @@ ui <- tagList(
 server <- function(input, output, session) {
 
   # ---------------------------
-  # DESCRIPTIVE DATA (from metasense_revised)
+  # DESCRIPTIVE DATA
   # ---------------------------
   output$desc_summary_boxes <- renderUI({
     view <- input$desc_region_toggle
@@ -636,91 +588,114 @@ server <- function(input, output, session) {
   })
 
   # ---------------------------
-  # LCA SUBGROUPS (from app.R)
+  # LCA SUBGROUPS
   # ---------------------------
-  output$lca_figure <- renderImage({
-    list(
-      src = "data/lca/LCA.png",
-      width = "60%",
-      alt = "LCA Mental-Metabolic Phenotype Profiles"
-    )
-  }, deleteFile = FALSE)
+  output$lca_distribution <- renderPlot({
+    plot_lca_profiles(lca_profile)
+  })
 
-  is_national_lca <- reactive(input$region_toggle == "Full National Cohort")
+  output$bubble_chart <- renderPlot({
+    plot_lca_bubble()
+  })
+
+  output$mca_plot <- renderPlot({
+    # Preferred: save the grouped MCA ggplot object as data/lca/mca_grouped.rds
+    if (file.exists("data/lca/mca_grouped.rds")) {
+      readRDS("data/lca/mca_grouped.rds")
+    } else {
+      placeholder_plot("MCA plot not yet added.\nSave the grouped factoextra/ggplot object as:\ndata/lca/mca_grouped.rds")
+    }
+  })
+
+  output$lca_region_note <- renderUI({
+    view <- input$region_toggle
+    if (view == "Florida") {
+      div(class = "alert alert-info small",
+          "Florida N = 497. The High Multidomain Burden phenotype was the most common profile (32.2%), followed by Hypertension-Dominant (22.1%) and Obesity-Dominant (20.1%).")
+    } else if (view == "North Florida (broad region)") {
+      div(class = "alert alert-info small",
+          "North Florida is a broad geographic category (n = 161 in the wearable cohort; 37.9% High Multidomain Burden). Five-class profile counts by this region have not yet been added to the dashboard.")
+    } else if (view == "Northwest Florida") {
+      div(class = "alert alert-warning small",
+          "Northwest Florida ZIP3 324/325 contains only five participants in the current wearable cohort; profile percentages are intentionally suppressed.")
+    } else {
+      NULL
+    }
+  })
 
   output$geographic_distribution <- renderPlot({
-    if (is_national_lca()) {
-      safe_rds_plot("data/lca/class_dist_full.rds", "Class distribution plot not found.\nAdd data/lca/class_dist_full.rds")
+    view <- input$region_toggle
+    if (view == "Full National Cohort") {
+      plot_lca_profiles(lca_profile)
+    } else if (view == "Florida") {
+      plot_lca_profiles(florida_profile, value_col = "pct", ylab = "Florida participants (%)")
+    } else if (view == "North Florida (broad region)") {
+      placeholder_plot("North Florida five-class profile distribution not yet added.\nPull Classes by location_region == 'North Florida'.")
     } else {
-      safe_rds_plot("data/lca/class_dist_panhandle.rds", "Northwest Florida class distribution not found.\nAdd data/lca/class_dist_panhandle.rds")
+      placeholder_plot("Northwest Florida profile distribution suppressed\nbecause n = 5.")
     }
   })
 
   output$age_plot <- renderPlot({
-    if (is_national_lca()) {
-      safe_rds_plot("data/lca/class_age.rds", "Age-by-class plot not found.\nAdd data/lca/class_age.rds")
-    } else {
-      safe_rds_plot("data/lca/class_age_panhandle.rds", "Northwest Florida age-by-class plot not found.\nAdd data/lca/class_age_panhandle.rds")
-    }
+    safe_rds_plot(
+      if (input$region_toggle == "Florida") "data/lca/class_age_florida.rds" else "data/lca/class_age.rds",
+      "Age-by-class plot not yet available.\nAdd data/lca/class_age.rds (national)\nand class_age_florida.rds (Florida)."
+    )
   })
-
   output$sex_plot <- renderPlot({
-    if (is_national_lca()) {
-      safe_rds_plot("data/lca/class_sex.rds", "Sex-by-class plot not found.\nAdd data/lca/class_sex.rds")
-    } else {
-      safe_rds_plot("data/lca/class_sex_panhandle.rds", "Northwest Florida sex-by-class plot not found.\nAdd data/lca/class_sex_panhandle.rds")
-    }
+    safe_rds_plot(
+      if (input$region_toggle == "Florida") "data/lca/class_sex_florida.rds" else "data/lca/class_sex.rds",
+      "Sex-by-class plot not yet available.\nAdd data/lca/class_sex.rds and class_sex_florida.rds."
+    )
   })
-
   output$race_plot <- renderPlot({
-    if (is_national_lca()) {
-      safe_rds_plot("data/lca/class_race.rds", "Race/ethnicity-by-class plot not found.\nAdd data/lca/class_race.rds")
-    } else {
-      safe_rds_plot("data/lca/class_race_panhandle.rds", "Northwest Florida race/ethnicity-by-class plot not found.\nAdd data/lca/class_race_panhandle.rds")
-    }
+    safe_rds_plot(
+      if (input$region_toggle == "Florida") "data/lca/class_race_florida.rds" else "data/lca/class_race.rds",
+      "Race/ethnicity-by-class plot not yet available.\nAdd data/lca/class_race.rds and class_race_florida.rds."
+    )
   })
-
   output$education_plot <- renderPlot({
-    if (is_national_lca()) {
-      safe_rds_plot("data/lca/class_education.rds", "Education-by-class plot not found.\nAdd data/lca/class_education.rds")
-    } else {
-      safe_rds_plot("data/lca/class_edu_panhandle.rds", "Northwest Florida education-by-class plot not found.\nAdd data/lca/class_edu_panhandle.rds")
-    }
+    safe_rds_plot(
+      if (input$region_toggle == "Florida") "data/lca/class_education_florida.rds" else "data/lca/class_education.rds",
+      "Education-by-class plot not yet available.\nAdd data/lca/class_education.rds and class_education_florida.rds."
+    )
   })
-
   output$marital_plot <- renderPlot({
-    if (is_national_lca()) {
-      safe_rds_plot("data/lca/class_marital.rds", "Marital-status-by-class plot not found.\nAdd data/lca/class_marital.rds")
-    } else {
-      safe_rds_plot("data/lca/class_mar_panhandle.rds", "Northwest Florida marital-status-by-class plot not found.\nAdd data/lca/class_mar_panhandle.rds")
-    }
+    safe_rds_plot(
+      if (input$region_toggle == "Florida") "data/lca/class_marital_florida.rds" else "data/lca/class_marital.rds",
+      "Marital-status-by-class plot not yet available.\nAdd data/lca/class_marital.rds and class_marital_florida.rds."
+    )
   })
 
   # ---------------------------
-  # RISK PREDICTION (model connected from app_metasense_revised)
+  # ML MODEL
   # ---------------------------
   output$ml_model_status <- renderUI({
-    if (!has_xgboost) {
-      div(class = "alert alert-danger",
-          "The R package 'xgboost' is not installed in this session, so the saved model cannot be used.")
-    } else if (!is.null(model_bundle_error)) {
-      div(class = "alert alert-danger", strong("Model file could not be loaded. "), model_bundle_error)
-    } else if (model_ready) {
-      div(class = "alert alert-success",
-          strong("MetaSense model connected. "),
-          "Predictions use the saved XGBoost model and class-conditional conformal thresholds.")
-    } else {
+    if (is.null(model_bundle)) {
       div(class = "alert alert-warning",
           strong("Model file not yet connected. "),
           "Add data/model/metasense_model_bundle.rds. The interface is already configured for the final model predictors and conformal output.")
+    } else if (!has_xgboost) {
+      div(class = "alert alert-danger",
+          "The model bundle is present, but the R package 'xgboost' is not installed on the deployment environment.")
+    } else {
+      div(class = "alert alert-success",
+          strong("MetaSense model connected. "),
+          "Predictions use the saved XGBoost model and class-conditional conformal thresholds.")
     }
   })
 
   observeEvent(input$ml_predict, {
-    if (!model_ready) {
+    if (is.null(model_bundle) || !has_xgboost) {
       output$ml_output <- renderUI({
-        div(class = "alert alert-secondary",
-            "Prediction unavailable until a valid model bundle is loaded (see status message above).")
+        card(
+          card_header("Prediction unavailable until the saved model is added"),
+          card_body(
+            p("The dashboard has all required user inputs, but it will not fabricate a probability without the trained model object."),
+            p(strong("Required file:"), " data/model/metasense_model_bundle.rds"),
+            p(class = "small text-muted", "Create this file from the R session used to train xgb_tuned. See the accompanying setup instructions provided with this app.")
+          )
+        )
       })
       return()
     }
@@ -733,17 +708,17 @@ server <- function(input, output, session) {
       education = input$ml_education,
       marital_status = input$ml_marital,
       location_region = input$ml_region,
-      steps_mean = input$ml_steps,
-      steps_cv = input$ml_step_cv,
-      pct_lt_3000 = input$ml_low_days / 100,
-      pct_ge_10000 = input$ml_high_days / 100,
-      weekend_difference = input$ml_wknd_diff,
+      steps_mean = input$ml_steps_mean,
+      steps_cv = input$ml_steps_cv,
+      pct_lt_3000 = input$ml_pct_lt_3000 / 100,
+      pct_ge_10000 = input$ml_pct_ge_10000 / 100,
+      weekend_difference = input$ml_weekend_difference,
       activity_days = input$ml_activity_days,
       wear_density = input$ml_wear_density,
       stringsAsFactors = FALSE
     )
 
-    # Apply saved factor levels so dummy columns line up with training.
+    # Apply saved factor levels if present in the bundle.
     if (!is.null(model_bundle$factor_levels)) {
       for (v in names(model_bundle$factor_levels)) {
         if (v %in% names(newdata)) {
@@ -776,7 +751,7 @@ server <- function(input, output, session) {
     include_high  <- (1 - p_high) <= q_high
 
     conformal_set <- if (include_high && include_other) {
-      "Uncertain \u2014 additional information recommended"
+      "Uncertain — additional information recommended"
     } else if (include_high) {
       "Elevated-burden signal"
     } else if (include_other) {
@@ -795,17 +770,20 @@ server <- function(input, output, session) {
           metric_box("Screening signal", threshold_signal, paste0("Operating threshold = ", round(threshold, 3))),
           metric_box("Conformal interpretation", conformal_set, "90% class-conditional framework")
         ),
-        div(
-          if (conformal_set == "Elevated-burden signal") {
-            div(class = "alert alert-warning", "The wearable and demographic pattern supports an elevated-burden signal. This is not confirmation of disease or phenotype membership and should prompt additional assessment rather than automated action.")
-          } else if (conformal_set == "Lower-burden pattern supported") {
-            div(class = "alert alert-success", "The available wearable and demographic information supports the lower-burden pattern. This does not rule out individual chronic conditions.")
-          } else if (grepl("Uncertain", conformal_set)) {
-            div(class = "alert alert-info", "The model intentionally retains both possible classes. Additional clinical or contextual information is recommended rather than forcing a binary classification.")
-          } else {
-            div(class = "alert alert-secondary", "The current input falls outside both class-conditional conformal criteria. Review model preprocessing and input ranges.")
-          },
-          p(class = "small text-muted mb-0", "MetaSense estimates current High Multidomain Burden phenotype membership. It does not predict future disease onset and is not intended to diagnose or replace clinician judgment.")
+        card(
+          card_header("How to Interpret This Result"),
+          card_body(
+            if (conformal_set == "Elevated-burden signal") {
+              div(class = "alert alert-warning", "The wearable and demographic pattern supports an elevated-burden signal. This is not confirmation of disease or phenotype membership and should prompt additional assessment rather than automated action.")
+            } else if (conformal_set == "Lower-burden pattern supported") {
+              div(class = "alert alert-success", "The available wearable and demographic information supports the lower-burden pattern. This does not rule out individual chronic conditions.")
+            } else if (grepl("Uncertain", conformal_set)) {
+              div(class = "alert alert-info", "The model intentionally retains both possible classes. Additional clinical or contextual information is recommended rather than forcing a binary classification.")
+            } else {
+              div(class = "alert alert-secondary", "The current input falls outside both class-conditional conformal criteria. Review model preprocessing and input ranges.")
+            },
+            p(class = "small text-muted mb-0", "MetaSense estimates current High Multidomain Burden phenotype membership. It does not predict future disease onset and is not intended to diagnose or replace clinician judgment.")
+          )
         )
       )
     })
