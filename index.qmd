@@ -26,6 +26,7 @@ format:
     footer: "[Live MetaSense Dashboard](https://acohenstat-metasense.share.connect.posit.cloud/)"
 execute:
   echo: false
+  self-contained: true
 
 ---
 
